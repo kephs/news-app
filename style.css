@@ -1,0 +1,235 @@
+/* ========================================
+   NewsHub Stylesheet
+   ======================================== */
+
+/* General Page Styling */
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #eef4f8;
+    color: #1b2a41;
+    margin: 0;
+    padding: 0;
+}
+
+/* ========================================
+   Navigation Bar
+   ======================================== */
+
+.navbar {
+    background: linear-gradient(90deg, #0f172a, #1e3a5f);
+}
+
+.navbar-brand {
+    color: #ffffff !important;
+    letter-spacing: 1px;
+}
+
+/* ========================================
+   Hero Section
+   ======================================== */
+
+.hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1d4e89 55%, #38bdf8 100%);
+    color: white;
+    padding: 90px 20px;
+    box-shadow: inset 0 -8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+}
+
+.hero p {
+    font-size: 1.25rem;
+    opacity: 0.95;
+    margin-top: 10px;
+}
+
+/* ========================================
+   Search Controls
+   ======================================== */
+
+.form-control,
+.form-select {
+    border: none;
+    border-radius: 50px;
+    padding: 14px 20px;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.35);
+    transform: scale(1.02);
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+
+.btn {
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.btn-info {
+    background: #0ea5e9;
+    border: none;
+}
+
+.btn-info:hover {
+    background: #0284c7;
+    transform: translateY(-2px);
+}
+
+.btn-outline-info:hover {
+    color: white;
+    background: #0ea5e9;
+}
+
+/* ========================================
+   Section Heading
+   ======================================== */
+
+.section-title {
+    color: #0f172a;
+    font-weight: 700;
+    border-left: 6px solid #0ea5e9;
+    padding-left: 15px;
+}
+
+/* ========================================
+   News Cards
+   ======================================== */
+
+.card {
+    border: none;
+    border-radius: 18px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.18);
+}
+
+.card-img-top {
+    height: 220px;
+    object-fit: cover;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-title {
+    color: #0f172a;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.card-text {
+    color: #64748b;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+/* Read More Button inside Card */
+
+.card .btn {
+    width: 100%;
+    margin-top: auto;
+}
+
+/* ========================================
+   Pagination
+   ======================================== */
+
+#prevBtn,
+#nextBtn {
+    min-width: 140px;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+footer {
+    background: #0f172a;
+    color: white;
+    margin-top: 60px;
+    font-size: 0.95rem;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 992px) {
+
+    .hero {
+        padding: 70px 20px;
+    }
+
+    .hero h1 {
+        font-size: 2.7rem;
+    }
+
+    .hero p {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .hero h1 {
+        font-size: 2.2rem;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .section-title {
+        text-align: center;
+        border-left: none;
+        border-bottom: 4px solid #0ea5e9;
+        padding-left: 0;
+        padding-bottom: 10px;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    #prevBtn,
+    #nextBtn {
+        width: 48%;
+    }
+}
+
+@media (max-width: 576px) {
+
+    .hero {
+        padding: 50px 15px;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero p {
+        font-size: 0.95rem;
+    }
+
+    #prevBtn,
+    #nextBtn {
+        width: 100%;
+    }
+}
