@@ -1,439 +1,1038 @@
-
-// const apiKey = process.env.NEWS_API_KEY;
-// const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`
-
-// async function fetchNews() {
-//     try {
-//         const response = await fetch(url);
-
-//         if (!response.ok) {
-//             throw new Error(`HTTP Error: ${response.status}`);
-//         }
-
-//         const data = await response.json();
-
-//         if (data.status !== "ok") {
-//             throw new Error(data.message);
-//         }
-
-//         displayNews(data.articles);
-
-//     } catch (error) {
-//         console.error("Error fetching news:", error);
-//     }
-// }
-
-// fetchNews();
+// ============================================================
+// Kyle's NewsHub
+// Currents API Version
+//
+// Author: Kyle Josephs
+//
+// This application displays the latest news from the
+// Currents API. Users can:
+//
+// • View the latest news
+// • Search for articles
+// • Filter by category
+// • Load additional articles
+// • View article details
+//
+// Environment:
+// Parcel
+// .env file:
+// NEWS_API_KEY=YOUR_API_KEY
+// ============================================================
 
 
-// // // Display the news articles on the webpage
-// // function displayNews(articles) {
-// //     // Select the container where the news articles will be displayed
-// //     const newsDiv = document.querySelector("#news");
+// ============================================================
+// Configuration
+// ============================================================
 
-// //     // Loop through each article in the articles array
-// //     for (const article of articles) {
-
-// //         // Create a new div to hold the current article
-// //         const articleDiv = document.createElement("div");
-
-// //         // Create an h4 element for the article title
-// //         const title = document.createElement("h4");
-
-// //         // Set the text of the heading to the article's title
-// //         title.textContent = article.title;
-
-// //         // Add the title to the article div
-// //         articleDiv.appendChild(title);
-
-// //         // Create a paragraph element for the article description
-// //         const description = document.createElement("p");
-
-// //         // Set the paragraph text to the article's description
-// //         description.textContent = article.description;
-
-// //         // Add the description to the article div
-// //         articleDiv.appendChild(description);
-
-// //         // Add the completed article div to the news container
-// //         newsDiv.appendChild(articleDiv);
-// //     }
-// // }
-
-// // Display the news articles on the webpage
-// function displayNews(articles) {
-
-//     // Select the news container
-//     const newsDiv = document.querySelector("#news");
-
-//     // Loop through each article
-//     for (const article of articles) {
-
-//         // Create a Bootstrap column
-//         const column = document.createElement("div");
-//         column.className = "col-md-6 col-lg-4";
-
-//         // Create the card
-//         const card = document.createElement("div");
-//         card.className = "card h-100 shadow";
-
-//         // Add the article image if available
-//         if (article.urlToImage) {
-//             const image = document.createElement("img");
-//             image.src = article.urlToImage;
-//             image.className = "card-img-top";
-//             image.alt = article.title;
-
-//             card.appendChild(image);
-//         }
-
-//         // Create the card body
-//         const cardBody = document.createElement("div");
-//         cardBody.className = "card-body";
-
-//         // Create the title
-//         const title = document.createElement("h5");
-//         title.className = "card-title";
-//         title.textContent = article.title;
-
-//         // Create the description
-//         const description = document.createElement("p");
-//         description.className = "card-text";
-//         description.textContent =
-//             article.description || "No description available.";
-
-//         // Create the Read More button
-//         const button = document.createElement("a");
-//         button.href = article.url;
-//         button.target = "_blank";
-//         button.className = "btn btn-primary";
-//         button.textContent = "Read More";
-
-//         // Add everything to the card body
-//         cardBody.appendChild(title);
-//         cardBody.appendChild(description);
-//         cardBody.appendChild(button);
-
-//         // Add card body to card
-//         card.appendChild(cardBody);
-
-//         // Add card to column
-//         column.appendChild(card);
-
-//         // Add column to page
-//         newsDiv.appendChild(column);
-//     }
-// }
+// ============================================================
+// Part 1 — Configuration, state, helper functions, DOM references
+// Part 2 — API functions (fetchLatestNews, searchNews, URL builders)
+// Part 3 — Rendering (createArticleCard, renderArticles, UI helpers)
+// Part 4 — Event listeners, "Load More", initialization, Back-to-Top
+// ============================================================
 
 
-// ==========================================
-// NewsHub JavaScript
-// ==========================================
+// API Key loaded from the Parcel .env file
+const API_KEY = process.env.NEWS_API_KEY;
 
-// Your NewsAPI key
-const apiKey = process.env.NEWS_API_KEY;
-// const url = `https://newsapi.org/v2/top-headlines?country=us&apiKey=${apiKey}`
+// Base URL for Currents API
+const BASE_URL = "https://api.currentsapi.services/v1";
 
-// Number of articles to display per page
-const pageSize = 9;
+// Number of articles to request at a time
+const PAGE_SIZE = 9;
 
-// Track the current page number
+
+// ============================================================
+// Application State
+// ============================================================
+
+// Current page returned by the API
 let currentPage = 1;
 
-// Store the current search term
+// Current search text
 let currentSearch = "";
 
-// Store the currently selected category
+// Current selected category
 let currentCategory = "";
 
-// ==========================================
-// Get references to HTML elements
-// ==========================================
+// Determines whether the user is searching
+let searchMode = false;
 
-// Container where the news articles will be displayed
-const newsContainer = document.querySelector("#news");
+// Stores all articles currently displayed
+let articles = [];
 
-// Search text box
-const searchInput = document.querySelector("#searchInput");
 
-// Search button
-const searchBtn = document.querySelector("#searchBtn");
+// ============================================================
+// DOM Elements
+// ============================================================
 
-// Category dropdown
-const categorySelect = document.querySelector("#category");
+const newsContainer =
+    document.querySelector("#news");
 
-// Previous page button
-const prevBtn = document.querySelector("#prevBtn");
+const loadingSpinner =
+    document.querySelector("#loading");
 
-// Next page button
-const nextBtn = document.querySelector("#nextBtn");
+const errorMessage =
+    document.querySelector("#errorMessage");
 
-// ==========================================
-// Fetch news articles from NewsAPI
-// ==========================================
+const resultsCount =
+    document.querySelector("#resultsCount");
 
-async function fetchNews() {
+const searchInput =
+    document.querySelector("#searchInput");
 
-    let url = "";
+const searchBtn =
+    document.querySelector("#searchBtn");
 
-    // If the user entered a search term,
-    // use the "everything" endpoint
-    if (currentSearch.trim() !== "") {
+const categorySelect =
+    document.querySelector("#category");
 
-        url =
-            `https://newsapi.org/v2/everything?q=${encodeURIComponent(currentSearch)}&page=${currentPage}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`;
+const loadMoreBtn =
+    document.querySelector("#loadMoreBtn");
 
-    }
+const refreshBtn =
+    document.querySelector("#refreshBtn");
 
-    // Otherwise, display top headlines
-    // using the selected category
-    else {
+const topBtn =
+    document.querySelector("#topBtn");
 
-        url =
-            `https://newsapi.org/v2/top-headlines?country=us&category=${currentCategory}&page=${currentPage}&pageSize=${pageSize}&apiKey=${apiKey}`;
 
-    }
+// ============================================================
+// Helper Functions
+// ============================================================
 
-    // Display a loading spinner while waiting
-    // for the API response
-    newsContainer.innerHTML = `
-        <div class="text-center py-5">
+/**
+ * Show the loading spinner.
+ */
+function showSpinner() {
 
-            <div class="spinner-border text-info"></div>
+    loadingSpinner.classList.remove("d-none");
 
-            <p class="mt-3">
-                Loading latest news...
+}
+
+/**
+ * Hide the loading spinner.
+ */
+function hideSpinner() {
+
+    loadingSpinner.classList.add("d-none");
+
+}
+
+/**
+ * Remove any error currently displayed.
+ */
+function clearError() {
+
+    errorMessage.innerHTML = "";
+
+}
+
+/**
+ * Display an error message.
+ *
+ * @param {string} message
+ */
+function showError(message) {
+
+    errorMessage.innerHTML = `
+
+        <div class="alert alert-danger">
+
+            <h5>
+
+                Unable to Load News
+
+            </h5>
+
+            <p>
+
+                ${message}
+
             </p>
 
         </div>
+
     `;
 
-    try {
+}
 
-        // Send the request to NewsAPI
-        const response = await fetch(url);
+/**
+ * Update the badge that shows the number
+ * of displayed articles.
+ */
+function updateResultsCount() {
 
-        // Check if the request was successful
-        if (!response.ok) {
-            throw new Error(`HTTP Error ${response.status}`);
-        }
+    resultsCount.textContent =
+        `${articles.length} Articles`;
 
-        // Convert the JSON response into a JavaScript object
-        const data = await response.json();
+}
 
-        // Check if the API returned an error
-        if (data.status !== "ok") {
-            throw new Error(data.message);
-        }
+/**
+ * Remove every displayed article.
+ */
+function clearArticles() {
 
-        // Display the articles on the page
-        displayNews(data.articles);
+    newsContainer.innerHTML = "";
 
-        // Disable Previous button when on page 1
-        prevBtn.disabled = currentPage === 1;
+}
 
-        // Disable Next button if fewer than pageSize
-        // articles were returned
-        nextBtn.disabled = data.articles.length < pageSize;
+/**
+ * Format an ISO date into a readable string.
+ *
+ * Example:
+ * July 15, 2026, 4:45 PM
+ *
+ * @param {string} dateString
+ * @returns {string}
+ */
+function formatDate(dateString) {
+
+    if (!dateString) {
+
+        return "";
 
     }
 
-    catch (error) {
+    const date =
+        new Date(dateString);
 
-        // Display an error message to the user
-        newsContainer.innerHTML = `
-            <div class="alert alert-danger">
+    return date.toLocaleString(undefined, {
 
-                <h5>Error Loading News</h5>
+        dateStyle: "long",
 
-                <p>${error.message}</p>
+        timeStyle: "short"
 
-            </div>
-        `;
+    });
 
-        // Print the error in the browser console
-        console.error(error);
+}
+
+/**
+ * Scroll smoothly to the top of the page.
+ */
+function scrollToTop() {
+
+    window.scrollTo({
+
+        top: 0,
+
+        behavior: "smooth"
+
+    });
+
+}
+
+/**
+ * Show or hide the Back-to-Top button.
+ */
+function updateTopButton() {
+
+    if (window.scrollY > 500) {
+
+        topBtn.style.display = "block";
+
+    }
+
+    else {
+
+        topBtn.style.display = "none";
 
     }
 
 }
 
-// ==========================================
-// Display the news articles
-// ==========================================
 
-function displayNews(articles) {
+// ============================================================
+// URL Builders
+// ============================================================
 
-    // Remove any previously displayed articles
-    newsContainer.innerHTML = "";
+/**
+ * Builds the URL used to retrieve
+ * the latest news.
+ *
+ * @returns {string}
+ */
+function buildLatestUrl() {
 
-    // Display a message if no articles were found
-    if (articles.length === 0) {
+    let url =
+        `${BASE_URL}/latest-news?language=en`;
+
+    if (currentCategory !== "") {
+
+        url +=
+            `&category=${encodeURIComponent(currentCategory)}`;
+
+    }
+
+    return url;
+
+}
+
+/**
+ * Builds the URL used when
+ * performing a search.
+ *
+ * @returns {string}
+ */
+function buildSearchUrl() {
+
+    let url =
+
+        `${BASE_URL}/search?keywords=${encodeURIComponent(currentSearch)}` +
+        `&language=en` +
+        `&page_number=${currentPage}` +
+        `&page_size=${PAGE_SIZE}`;
+
+    if (currentCategory !== "") {
+
+        url +=
+            `&category=${encodeURIComponent(currentCategory)}`;
+
+    }
+
+    return url;
+
+}
+
+
+// ============================================================
+// Part 2
+// ============================================================
+// API Helper
+
+// fetchNews()
+// fetchLatestNews()
+// searchNews()
+// Robust API error handling
+// HTTP status handling
+// Authorization header
+// "Load More" support
+// Automatic disabling of the Load More button when there are no more search results
+// ============================================================
+
+/**
+ * Sends a request to the Currents API.
+ *
+ * @param {string} url
+ * @returns {Promise<Array>}
+ */
+async function fetchFromApi(url) {
+
+    clearError();
+
+    showSpinner();
+
+    try {
+
+        const response = await fetch(url, {
+
+            headers: {
+
+                Authorization: `Bearer ${API_KEY}`
+
+            }
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error(
+
+                `Server returned ${response.status}.`
+
+            );
+
+        }
+
+        const data = await response.json();
+
+        if (data.status !== "ok") {
+
+            throw new Error(
+
+                data.message || "Unexpected API error."
+
+            );
+
+        }
+
+        return data.news || [];
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        showError(error.message);
+
+        return [];
+
+    }
+
+    finally {
+
+        hideSpinner();
+
+    }
+
+}
+
+
+// ============================================================
+// Latest News
+// ============================================================
+
+/**
+ * Retrieves the latest news.
+ *
+ * Since the latest-news endpoint does not
+ * support pagination, we simply replace
+ * the articles each time it is called.
+ */
+async function fetchLatestNews() {
+
+    searchMode = false;
+
+    currentPage = 1;
+
+    const url =
+        buildLatestUrl();
+
+    articles =
+        await fetchFromApi(url);
+
+    renderArticles();
+
+    updateResultsCount();
+
+    loadMoreBtn.classList.add("d-none");
+
+}
+
+
+// ============================================================
+// Search News
+// ============================================================
+
+/**
+ * Performs a keyword search.
+ *
+ * Uses page_number and page_size
+ * supported by the Currents API.
+ *
+ * @param {boolean} append
+ */
+async function searchNews(
+
+    append = false
+
+) {
+
+    searchMode = true;
+
+    const url =
+        buildSearchUrl();
+
+    const results =
+        await fetchFromApi(url);
+
+    if (append) {
+
+        articles.push(...results);
+
+    }
+
+    else {
+
+        articles = results;
+
+    }
+
+    renderArticles();
+
+    updateResultsCount();
+
+    if (
+
+        results.length < PAGE_SIZE
+
+    ) {
+
+        loadMoreBtn.disabled = true;
+
+        loadMoreBtn.textContent =
+            "No More Articles";
+
+    }
+
+    else {
+
+        loadMoreBtn.disabled = false;
+
+        loadMoreBtn.textContent =
+            "Load More Articles";
+
+    }
+
+}
+
+
+// ============================================================
+// Load More
+// ============================================================
+
+/**
+ * Loads additional search results.
+ *
+ * The Currents latest-news endpoint
+ * doesn't truly paginate, so this
+ * feature is available only while
+ * searching.
+ */
+async function loadMoreArticles() {
+
+    if (!searchMode) {
+
+        return;
+
+    }
+
+    currentPage++;
+
+    await searchNews(true);
+
+}
+
+
+// ============================================================
+// Refresh Current View
+// ============================================================
+
+/**
+ * Refreshes whatever the user
+ * is currently viewing.
+ */
+async function refreshNews() {
+
+    if (searchMode) {
+
+        currentPage = 1;
+
+        await searchNews(false);
+
+    }
+
+    else {
+
+        await fetchLatestNews();
+
+    }
+
+}
+
+
+// ============================================================
+// Initialize Application
+// ============================================================
+
+/**
+ * Loads the application's initial
+ * state.
+ */
+async function initializeApp() {
+
+    currentPage = 1;
+
+    currentSearch = "";
+
+    currentCategory = "";
+
+    searchMode = false;
+
+    articles = [];
+
+    await fetchLatestNews();
+
+}
+
+
+// ============================================================
+// Part 3
+// ============================================================
+
+// UI Rendering
+// createArticleCard()
+// renderArticles()
+// Placeholder image support
+// Author badges
+// Category badges
+// Published date
+// Responsive Bootstrap cards
+// Graceful handling of missing images and data
+// ============================================================
+
+/**
+ * Creates a Bootstrap badge.
+ *
+ * @param {string} text
+ * @param {string} className
+ * @returns {HTMLElement}
+ */
+function createBadge(text, className = "bg-info") {
+
+    const badge = document.createElement("span");
+
+    badge.className = `badge ${className} me-2 mb-2`;
+
+    badge.textContent = text;
+
+    return badge;
+
+}
+
+/**
+ * Creates one Bootstrap card for an article.
+ *
+ * @param {Object} article
+ * @returns {HTMLElement}
+ */
+function createArticleCard(article) {
+
+    const column =
+        document.createElement("div");
+
+    column.className =
+        "col-md-6 col-lg-4";
+
+    const card =
+        document.createElement("div");
+
+    card.className =
+        "card h-100";
+
+    // =====================================
+    // Image
+    // =====================================
+
+    const image =
+        document.createElement("img");
+
+    image.className =
+        "card-img-top";
+
+    image.loading = "lazy";
+
+    image.src =
+        article.image ||
+        "https://placehold.co/600x400?text=No+Image";
+
+    image.alt =
+        article.title || "News Image";
+
+    image.onerror = () => {
+
+        image.src =
+            "https://placehold.co/600x400?text=No+Image";
+
+    };
+
+    card.appendChild(image);
+
+    // =====================================
+    // Card Body
+    // =====================================
+
+    const body =
+        document.createElement("div");
+
+    body.className =
+        "card-body d-flex flex-column";
+
+    // =====================================
+    // Category Badge
+    // =====================================
+
+    if (
+
+        article.category &&
+        article.category.length > 0
+
+    ) {
+
+        body.appendChild(
+
+            createBadge(
+
+                article.category[0],
+
+                "bg-primary"
+
+            )
+
+        );
+
+    }
+
+    // =====================================
+    // Title
+    // =====================================
+
+    const title =
+        document.createElement("h5");
+
+    title.className =
+        "card-title mt-2";
+
+    title.textContent =
+        article.title ||
+        "Untitled Article";
+
+    body.appendChild(title);
+
+    // =====================================
+    // Description
+    // =====================================
+
+    const description =
+        document.createElement("p");
+
+    description.className =
+        "card-text";
+
+    description.textContent =
+
+        article.description ||
+
+        "No description available.";
+
+    body.appendChild(description);
+
+    // =====================================
+    // Source & Author
+    // =====================================
+
+    const meta =
+        document.createElement("div");
+
+    meta.className =
+        "mb-3";
+
+    if (article.author) {
+
+        meta.appendChild(
+
+            createBadge(
+
+                article.author,
+
+                "bg-secondary"
+
+            )
+
+        );
+
+    }
+
+    if (article.author === null &&
+        article.source) {
+
+        meta.appendChild(
+
+            createBadge(
+
+                article.source,
+
+                "bg-secondary"
+
+            )
+
+        );
+
+    }
+
+    body.appendChild(meta);
+
+    // =====================================
+    // Publish Date
+    // =====================================
+
+    if (article.published) {
+
+        const date =
+            document.createElement("small");
+
+        date.className =
+            "text-muted mb-3";
+
+        date.textContent =
+            formatDate(
+
+                article.published
+
+            );
+
+        body.appendChild(date);
+
+    }
+
+    // =====================================
+    // Read More Button
+    // =====================================
+
+    const button =
+        document.createElement("a");
+
+    button.href =
+        article.url;
+
+    button.target =
+        "_blank";
+
+    button.rel =
+        "noopener noreferrer";
+
+    button.className =
+        "btn btn-info text-white mt-auto";
+
+    button.innerHTML =
+        "Read Article";
+
+    body.appendChild(button);
+
+    card.appendChild(body);
+
+    column.appendChild(card);
+
+    return column;
+
+}
+
+
+// ============================================================
+// Render Articles
+// ============================================================
+
+/**
+ * Displays every article currently
+ * stored in the articles array.
+ */
+function renderArticles() {
+
+    clearArticles();
+
+    if (
+
+        articles.length === 0
+
+    ) {
 
         newsContainer.innerHTML = `
-            <div class="alert alert-warning text-center">
-                No articles found.
+
+            <div class="col-12">
+
+                <div class="alert alert-warning text-center">
+
+                    <h4>
+
+                        No Articles Found
+
+                    </h4>
+
+                    <p>
+
+                        Try another keyword
+                        or category.
+
+                    </p>
+
+                </div>
+
             </div>
+
         `;
 
         return;
 
     }
 
-    // Loop through each article
-    for (const article of articles) {
+    for (
 
-        // Create a Bootstrap column
-        const column = document.createElement("div");
-        column.className = "col-md-6 col-lg-4";
+        const article
 
-        // Create a Bootstrap card
-        const card = document.createElement("div");
-        card.className = "card h-100";
+        of articles
 
-        // If the article contains an image,
-        // create and add the image
-        if (article.urlToImage) {
+    ) {
 
-            const image = document.createElement("img");
-            image.src = article.urlToImage;
-            image.alt = article.title;
-            image.className = "card-img-top";
+        newsContainer.appendChild(
 
-            card.appendChild(image);
+            createArticleCard(article)
 
-        }
-
-        // Create the card body
-        const body = document.createElement("div");
-        body.className = "card-body d-flex flex-column";
-
-        // Create the article title
-        const title = document.createElement("h5");
-        title.className = "card-title";
-        title.textContent = article.title;
-
-        // Create the article description
-        const description = document.createElement("p");
-        description.className = "card-text";
-
-        description.textContent =
-            article.description || "No description available.";
-
-        // Create the Read More button
-        const button = document.createElement("a");
-        button.href = article.url;
-        button.target = "_blank";
-        button.className = "btn btn-info mt-auto text-white";
-        button.textContent = "Read More";
-
-        // Add all elements to the card body
-        body.appendChild(title);
-        body.appendChild(description);
-        body.appendChild(button);
-
-        // Add the body to the card
-        card.appendChild(body);
-
-        // Add the card to the column
-        column.appendChild(card);
-
-        // Add the completed column to the page
-        newsContainer.appendChild(column);
+        );
 
     }
 
 }
 
-// ==========================================
-// Search Button Event
-// ==========================================
+// ============================================================
+// Part 4 - Event Listeners
 
-// Search when the Search button is clicked
-searchBtn.addEventListener("click", () => {
+// Search button
+// Press Enter to search
+// Category filter
+// Refresh button
+// Load More button
+// Back-to-Top button
+// Window scroll events
+// App initialization
+// Final polish and best practices
+// ============================================================
 
-    // Save the search text
-    currentSearch = searchInput.value.trim();
+/**
+ * Search button click
+ */
+searchBtn.addEventListener("click", async () => {
 
-    // Return to the first page
+    currentSearch =
+        searchInput.value.trim();
+
     currentPage = 1;
 
-    // Load matching articles
-    fetchNews();
+    if (currentSearch === "") {
+
+        await fetchLatestNews();
+
+        return;
+
+    }
+
+    await searchNews();
 
 });
 
-// ==========================================
-// Search Using Enter Key
-// ==========================================
 
-// Allow the user to press Enter
-// instead of clicking Search
-searchInput.addEventListener("keypress", (event) => {
+/**
+ * Press Enter to search
+ */
+searchInput.addEventListener("keydown", async (event) => {
 
-    if (event.key === "Enter") {
+    if (event.key !== "Enter") {
 
-        currentSearch = searchInput.value.trim();
+        return;
 
-        currentPage = 1;
+    }
 
-        fetchNews();
+    currentSearch =
+        searchInput.value.trim();
+
+    currentPage = 1;
+
+    if (currentSearch === "") {
+
+        await fetchLatestNews();
+
+        return;
+
+    }
+
+    await searchNews();
+
+});
+
+
+/**
+ * Category selection
+ */
+categorySelect.addEventListener("change", async () => {
+
+    currentCategory =
+        categorySelect.value;
+
+    currentPage = 1;
+
+    if (currentSearch === "") {
+
+        await fetchLatestNews();
+
+    }
+
+    else {
+
+        await searchNews();
 
     }
 
 });
 
-// ==========================================
-// Category Filter
-// ==========================================
 
-// Load articles when a category is selected
-categorySelect.addEventListener("change", () => {
+/**
+ * Refresh button
+ */
+refreshBtn.addEventListener("click", async () => {
 
-    // Save the selected category
-    currentCategory = categorySelect.value;
-
-    // Clear any previous search
-    currentSearch = "";
-    searchInput.value = "";
-
-    // Start on page 1
-    currentPage = 1;
-
-    // Load the selected category
-    fetchNews();
+    await refreshNews();
 
 });
 
-// ==========================================
-// Pagination
-// ==========================================
 
-// Load the next page of articles
-nextBtn.addEventListener("click", () => {
+/**
+ * Load More button
+ */
+loadMoreBtn.addEventListener("click", async () => {
 
-    currentPage++;
-
-    fetchNews();
+    await loadMoreArticles();
 
 });
 
-// Load the previous page
-prevBtn.addEventListener("click", () => {
 
-    if (currentPage > 1) {
+/**
+ * Back-to-top button
+ */
+topBtn.addEventListener("click", () => {
 
-        currentPage--;
+    scrollToTop();
 
-        fetchNews();
+});
+
+
+/**
+ * Window scrolling
+ */
+window.addEventListener("scroll", () => {
+
+    updateTopButton();
+
+});
+
+
+// ============================================================
+// Initialize
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", async () => {
+
+    if (!API_KEY) {
+
+        showError(
+            "NEWS_API_KEY was not found. Check your .env file and restart Parcel."
+        );
+
+        loadMoreBtn.classList.add("d-none");
+
+        return;
 
     }
 
+    await initializeApp();
+
 });
 
-// ==========================================
-// Load the first page when the app starts
-// ==========================================
 
-// Display the latest headlines immediately
-fetchNews();
+// ============================================================
+// Debug (development only)
+// ============================================================
+
+// Uncomment the line below while developing to verify
+// that Parcel is loading your environment variable.
+//
+// console.log("Currents API Key:", API_KEY);
