@@ -16,14 +16,12 @@
 // Environment:
 // Parcel
 // .env file:
-// NEWS_API_KEY=YOUR_API_KEY
+// NEWS_API_KEY=API_KEY
 // ============================================================
 
 
 // ============================================================
 // Configuration
-// ============================================================
-
 // ============================================================
 // Part 1 — Configuration, state, helper functions, DOM references
 // Part 2 — API functions (fetchLatestNews, searchNews, URL builders)
