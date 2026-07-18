@@ -2,12 +2,18 @@
   "name": "news-app",
   "version": "1.0.0",
   "description": "This is a sample news website",
+  "private": true,
   "source": "index.html",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "parcel --open"
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html",
+    "test": "echo \"No tests specified\""
   },
-  "keywords": [],
+  "keywords": [
+    "javascript",
+    "news",
+    "parcel"
+  ],
   "author": "Kyle Josephs",
   "license": "ISC",
   "devDependencies": {
